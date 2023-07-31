@@ -91,16 +91,10 @@ class f_dec:
         return f_dec(self.value, self.exp)
 
 
-birthday_dict = dict()
-
-
 def birthday(num):
-    if repr(num) in birthday_dict:
-        return birthday_dict[repr(num)]
-    if num.exp == 0:
-        return abs(num.value)
-    birthday_dict[repr(num)] = max(birthday(f_dec(num.value + 1, num.exp)), birthday(f_dec(num.value - 1, num.exp))) + 1
-    return birthday_dict[repr(num)]
+    if num.value == 0:
+        return 0
+    return math.ceil(float(num)) + num.exp
 
 
 def between_dec(num1, num2):
