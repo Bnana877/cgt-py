@@ -3,18 +3,18 @@ from graphviz import Digraph
 import math
 
 
-class f_dec:
-    def __init__(self, value_, exp_):
+class dyadic:
+    def __init__(self, value_=0, exp_=0):
         if value_ == 0:
             self.value = 0
             self.exp = 0
         else:
-            if exp_ > 0:
+            if exp_ < 0:
                 while value_ % 2 == 0:
                     value_ = value_ // 2
-                    exp_ -= 1
-            if exp_ < 0:
-                value_ = value_ * 2 ** (-exp_)
+                    exp_ += 1
+            if exp_ > 0:
+                value_ = value_ * 2 ** exp_
                 exp_ = 0
             self.value = value_
             self.exp = exp_
@@ -23,7 +23,10 @@ class f_dec:
         return f"({self.value}, {self.exp})"
 
     def __float__(self):
-        return float(self.value) * 2 ** (-self.exp)
+        return float(self.value) * 2 ** self.exp
+
+    def __abs__(self):
+        return dyadic(abs(self.value), self.exp)
 
     def __str__(self):
         if self.exp == 0:
@@ -32,32 +35,29 @@ class f_dec:
 
     def __add__(self, other):
         if self.exp == other.exp:
-            return f_dec(self.value + other.value, self.exp)
+            return dyadic(self.value + other.value, self.exp)
         elif self.exp > other.exp:
-            new_other_value = other.value * 2 ** (self.exp - other.exp)
-            return f_dec(self.value + new_other_value, self.exp)
+            new_self_value = self.value * 2 ** (self.exp - other.exp)
+            return dyadic(new_self_value + other.value, other.exp)
         else:
-            new_self_value = self.value * 2 ** (other.exp - self.exp)
-            return f_dec(new_self_value + other.value, other.exp)
+            new_other_value = other.value * 2 ** (other.exp - self.exp)
+            return dyadic(self.value + new_other_value, self.exp)
 
     def __sub__(self, other):
         if self.exp == other.exp:
-            return f_dec(self.value - other.value, self.exp)
+            return dyadic(self.value + other.value, self.exp)
         elif self.exp > other.exp:
-            new_other_value = other.value * 2 ** (self.exp - other.exp)
-            return f_dec(self.value - new_other_value, self.exp)
+            new_self_value = self.value * 2 ** (self.exp - other.exp)
+            return dyadic(new_self_value - other.value, other.exp)
         else:
-            new_self_value = self.value * 2 ** (other.exp - self.exp)
-            return f_dec(new_self_value - other.value, other.exp)
+            new_other_value = other.value * 2 ** (other.exp - self.exp)
+            return dyadic(self.value - new_other_value, self.exp)
 
     def __mul__(self, other):
-        return f_dec(self.value * other.value, self.exp + other.exp)
-
-    def __truediv__(self, other):
-        return f_dec(self.value / other.value, self.exp - other.exp)
+        return dyadic(self.value * other.value, self.exp + other.exp)
 
     def __eq__(self, other):
-        if type(other) != f_dec:
+        if type(other) != dyadic:
             return False
         return self.value == other.value and self.exp == other.exp
 
@@ -65,21 +65,21 @@ class f_dec:
         if self.exp == other.exp:
             return self.value < other.value
         elif self.exp > other.exp:
-            new_other_value = other.value * 2 ** (self.exp - other.exp)
-            return self.value < new_other_value
-        else:
-            new_self_value = self.value * 2 ** (other.exp - self.exp)
+            new_self_value = self.value * 2 ** (self.exp - other.exp)
             return new_self_value < other.value
+        else:
+            new_other_value = other.value * 2 ** (other.exp - self.exp)
+            return self.value < new_other_value
 
     def __gt__(self, other):
         if self.exp == other.exp:
             return self.value > other.value
         elif self.exp > other.exp:
-            new_other_value = other.value * 2 ** (self.exp - other.exp)
-            return self.value > new_other_value
-        else:
-            new_self_value = self.value * 2 ** (other.exp - self.exp)
+            new_self_value = self.value * 2 ** (self.exp - other.exp)
             return new_self_value > other.value
+        else:
+            new_other_value = other.value * 2 ** (other.exp - self.exp)
+            return self.value > new_other_value
 
     def __le__(self, other):
         return self < other or self == other
@@ -88,28 +88,29 @@ class f_dec:
         return self > other or self == other
 
     def copy(self):
-        return f_dec(self.value, self.exp)
+        return dyadic(self.value, self.exp)
+
+    def birthday(self):
+        if self.value == 0:
+            return 0
+        return math.ceil(float(abs(self))) - self.exp
 
 
-def birthday(num):
-    if num.value == 0:
-        return 0
-    return math.ceil(float(num)) + num.exp
-
-
-def between_dec(num1, num2):
+def between(num1, num2):
+    if num1 is None and num2 is None:
+        return dyadic(0, 0)
     if num1 is None:
-        return f_dec(min(math.ceil(num2) - 1, 0), 0)
-    if num2 is None:
-        return f_dec(max(math.floor(num1) + 1, 0), 0)
-    max_exp = max(birthday(num1), birthday(num2))
-    d_list = [f_dec(_, max_exp) for _ in range(1 + num1.value * 2 ** (max_exp - num1.exp),
-                                               num2.value * 2 ** (max_exp - num2.exp))]
-    b_list = [birthday(_) for _ in d_list]
-    b_min = min(b_list)
-    for d in range(len(d_list)):
-        if b_list[d] == b_min:
-            return d_list[d]
+        return dyadic(min(math.ceil(num2) - 1, 0), 0)
+    elif num2 is None:
+        return dyadic(max(math.floor(num1) + 1, 0), 0)
+    elif num1 >= num2:
+        return None
+
+    num3 = num2 - num1
+
+    new_exp = min(0, len(bin(num3.value)) - 2 - num3.exp)
+    print(num2, new_exp)
+    return num1 + dyadic(1, -new_exp)
 
 
 hole_num_dict = dict()
@@ -148,8 +149,8 @@ def calc_number(num):
     L_num = None
     R_num = None
     if len(L_list) == 0 and len(R_list) == 0:
-        hole_num_dict[str(num)] = f_dec(0, 0)
-        return f_dec(0, 0)
+        hole_num_dict[str(num)] = dyadic(0, 0)
+        return dyadic(0, 0)
 
     if len(L_list) > 0:
         L_num = max(L_list)
@@ -158,7 +159,7 @@ def calc_number(num):
     if len(L_list) > 0 and len(R_list) > 0:
         if L_num >= R_num:
             return False
-    hole_num_dict[str(num)] = between_dec(L_num, R_num)
+    hole_num_dict[str(num)] = between(L_num, R_num)
     return hole_num_dict[str(num)].copy()
 
 
